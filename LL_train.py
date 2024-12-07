@@ -62,6 +62,9 @@ parser.add_argument("--max_train_input_length", default=2048, type=int,
 parser.add_argument("--max_new_tokens", default=100, type=int,
                     help="Generation parameters")
 
+parser.add_argument("--chunks", default=1, type=int,
+                    help="Number of chunks used in training.")                 
+
 args = parser.parse_args()
 
 def set_seed(args):
@@ -209,11 +212,25 @@ if args.do_train:
     # # all outputs are labeled as 'unsafe'
     # train_labels = ["unsafe"] * len(train_texts)
 
-    chunk_1_path = f"./{args.data_dir}/prompts_chunk_1.csv"  # Update to your correct path
-    train_df = pd.read_csv(chunk_1_path)  # Load chunk 1
-    train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle data
+    # List to store data from multiple chunks
+    train_dfs = []
+
+    # Iterate through the specified number of chunks
+    for i in range(1, args.chunks + 1):  # From 1 to args.chunk (inclusive)
+        print(f'Loading chunk {i}')
+        chunk_path = f"./{args.data_dir}/prompts_chunk_{i}.csv"
+        chunk_df = pd.read_csv(chunk_path)  # Load each chunk
+        train_dfs.append(chunk_df)  # Add the DataFrame to the list
+
+    # Concatenate all the chunks into a single DataFrame
+    train_df = pd.concat(train_dfs, ignore_index=True)
+    
+    # Shuffle the combined DataFrame
+    train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
+    
+    # Extract prompts and labels
     train_texts = train_df["prompt"].tolist()
-    train_labels = train_df["label"].tolist()  # Use labels directly from the chunk
+    train_labels = train_df["label"].tolist()
 
 if args.do_test:
     # test_df = load_and_concatenate_csv(all_file_paths, subset="test")    
@@ -221,8 +238,8 @@ if args.do_test:
     # # all outputs are labeled as 'unsafe'
     # test_labels = ["unsafe"] * len(test_texts)
 
-    chunk_2_path = f"./{args.data_dir}/prompts_chunk_2.csv"
-    test_df = pd.read_csv(chunk_2_path)
+    chunk_path = f"./{args.data_dir}/prompts_chunk_{args.chunks}.csv"
+    test_df = pd.read_csv(chunk_path)
     test_df = test_df.sample(frac=1, random_state=42).reset_index(drop=True)
     test_texts = test_df["prompt"].tolist()
     test_labels = test_df["label"].tolist()

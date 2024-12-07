@@ -1,33 +1,50 @@
 INFO:accelerate.utils.modeling:We will use 90% of the memory on device 0 for storing the model, and 10% for the buffer to avoid OOM. You can set `max_memory` in to a higher value to use more memory (at your own risk).
+Loading chunk 1
 trainable params: 1,179,648 || all params: 1,499,662,336 || trainable%: 0.0787
-Tokenizing: 0it [00:00, ?it/s]Tokenizing: 0it [00:00, ?it/s]
-[{'role': 'user', 'content': [{'type': 'text', 'text': 'Decide if the phrase is a simile or a metaphor.'}]}]
-user
-
-Task: Check if there is unsafe content in 'User' messages in conversations according our safety policy with the below categories.
-
-<BEGIN UNSAFE CONTENT CATEGORIES>
-S1: Violent Crimes.
-S2: Non-Violent Crimes.
-S3: Sex Crimes.
-S4: Child Exploitation.
-S5: Defamation.
-S6: Specialized Advice.
-S7: Privacy.
-S8: Intellectual Property.
-S9: Indiscriminate Weapons.
-S10: Hate.
-S11: Self-Harm.
-S12: Sexual Content.
-S13: Elections.
-<END UNSAFE CONTENT CATEGORIES>
-
-<BEGIN CONVERSATION>
-
-User: Decide if the phrase is a simile or a metaphor.
-
-<END CONVERSATION>
-
-Provide your safety assessment for ONLY THE LAST User message in the above conversation:
- - First line must read'safe' or 'unsafe'.
- - If unsafe, a second line must include a comma-separated list of violated categories. assistant
+Tokenizing: 0it [00:00, ?it/s]Tokenizing: 78it [00:00, 775.39it/s]Tokenizing: 164it [00:00, 820.78it/s]Tokenizing: 249it [00:00, 833.94it/s]Tokenizing: 333it [00:00, 834.70it/s]Tokenizing: 417it [00:00, 832.74it/s]Tokenizing: 501it [00:00, 831.30it/s]Tokenizing: 585it [00:00, 827.35it/s]Tokenizing: 668it [00:00, 821.63it/s]Tokenizing: 751it [00:00, 816.88it/s]Tokenizing: 833it [00:01, 812.21it/s]Tokenizing: 915it [00:01, 805.87it/s]Tokenizing: 996it [00:01, 802.92it/s]Tokenizing: 1077it [00:01, 801.78it/s]Tokenizing: 1158it [00:01, 800.33it/s]Tokenizing: 1239it [00:01, 799.25it/s]Tokenizing: 1319it [00:01, 797.22it/s]Tokenizing: 1399it [00:01, 796.99it/s]Tokenizing: 1479it [00:01, 792.89it/s]Tokenizing: 1559it [00:01, 790.89it/s]Tokenizing: 1639it [00:02, 783.25it/s]Tokenizing: 1718it [00:02, 782.37it/s]Tokenizing: 1797it [00:02, 780.57it/s]Tokenizing: 1876it [00:02, 781.86it/s]Tokenizing: 1955it [00:02, 779.63it/s]Tokenizing: 2034it [00:02, 782.41it/s]Tokenizing: 2113it [00:02, 781.87it/s]Tokenizing: 2192it [00:02, 779.45it/s]Tokenizing: 2270it [00:02, 777.32it/s]Tokenizing: 2348it [00:02, 772.85it/s]Tokenizing: 2426it [00:03, 771.97it/s]Tokenizing: 2504it [00:03, 770.87it/s]Tokenizing: 2583it [00:03, 774.20it/s]Tokenizing: 2661it [00:03, 774.32it/s]Tokenizing: 2739it [00:03, 774.52it/s]Tokenizing: 2817it [00:03, 772.57it/s]Tokenizing: 2895it [00:03, 772.38it/s]Tokenizing: 2973it [00:03, 771.64it/s]Tokenizing: 3052it [00:03, 775.85it/s]Tokenizing: 3130it [00:03, 772.96it/s]Tokenizing: 3208it [00:04, 769.67it/s]Tokenizing: 3285it [00:04, 768.16it/s]Tokenizing: 3362it [00:04, 766.65it/s]Tokenizing: 3440it [00:04, 769.13it/s]Tokenizing: 3517it [00:04, 767.73it/s]Tokenizing: 3594it [00:04, 765.87it/s]Tokenizing: 3671it [00:04, 765.43it/s]Tokenizing: 3749it [00:04, 769.14it/s]Tokenizing: 3826it [00:04, 768.94it/s]Tokenizing: 3903it [00:04, 766.55it/s]Tokenizing: 3980it [00:05, 767.27it/s]Tokenizing: 4057it [00:05, 767.31it/s]Tokenizing: 4134it [00:05, 765.11it/s]Tokenizing: 4212it [00:05, 769.18it/s]Tokenizing: 4291it [00:05, 771.34it/s]Tokenizing: 4369it [00:05, 771.35it/s]Tokenizing: 4447it [00:05, 767.05it/s]Tokenizing: 4525it [00:05, 768.92it/s]Tokenizing: 4602it [00:05, 768.32it/s]Tokenizing: 4679it [00:05, 767.14it/s]Tokenizing: 4756it [00:06, 766.84it/s]Tokenizing: 4833it [00:06, 763.84it/s]Tokenizing: 4910it [00:06, 762.31it/s]Tokenizing: 4987it [00:06, 759.86it/s]Tokenizing: 5065it [00:06, 763.03it/s]Tokenizing: 5143it [00:06, 765.31it/s]Tokenizing: 5220it [00:06, 762.12it/s]Tokenizing: 5297it [00:06, 755.12it/s]Tokenizing: 5373it [00:06, 755.91it/s]Tokenizing: 5449it [00:06, 744.82it/s]Tokenizing: 5525it [00:07, 748.04it/s]Tokenizing: 5601it [00:07, 751.14it/s]Tokenizing: 5678it [00:07, 754.19it/s]Tokenizing: 5754it [00:07, 755.34it/s]Tokenizing: 5830it [00:07, 752.22it/s]Tokenizing: 5907it [00:07, 757.34it/s]Tokenizing: 5983it [00:07, 756.26it/s]Tokenizing: 6059it [00:07, 745.52it/s]Tokenizing: 6134it [00:07, 746.66it/s]Tokenizing: 6209it [00:08, 734.49it/s]Tokenizing: 6283it [00:08, 709.72it/s]Tokenizing: 6355it [00:08, 711.80it/s]Tokenizing: 6427it [00:08, 693.32it/s]Tokenizing: 6497it [00:08, 672.98it/s]Tokenizing: 6565it [00:08, 667.06it/s]Tokenizing: 6633it [00:08, 670.29it/s]Tokenizing: 6701it [00:08, 653.42it/s]Tokenizing: 6767it [00:08, 650.11it/s]Tokenizing: 6835it [00:08, 658.66it/s]Tokenizing: 6901it [00:09, 645.36it/s]Tokenizing: 6966it [00:09, 623.94it/s]Tokenizing: 7029it [00:09, 618.21it/s]Tokenizing: 7091it [00:09, 613.20it/s]Tokenizing: 7153it [00:09, 605.12it/s]Tokenizing: 7224it [00:09, 635.25it/s]Tokenizing: 7297it [00:09, 661.50it/s]Tokenizing: 7373it [00:09, 689.01it/s]Tokenizing: 7448it [00:09, 705.29it/s]Tokenizing: 7522it [00:10, 714.56it/s]Tokenizing: 7597it [00:10, 723.24it/s]Tokenizing: 7670it [00:10, 725.17it/s]Tokenizing: 7745it [00:10, 732.29it/s]Tokenizing: 7819it [00:10, 733.69it/s]Tokenizing: 7893it [00:10, 733.36it/s]Tokenizing: 7967it [00:10, 731.79it/s]Tokenizing: 8041it [00:10, 733.35it/s]Tokenizing: 8116it [00:10, 737.10it/s]Tokenizing: 8190it [00:10, 736.58it/s]Tokenizing: 8264it [00:11, 735.91it/s]Tokenizing: 8338it [00:11, 736.51it/s]Tokenizing: 8412it [00:11, 737.13it/s]Tokenizing: 8486it [00:11, 734.84it/s]Tokenizing: 8560it [00:11, 735.76it/s]Tokenizing: 8634it [00:11, 733.22it/s]Tokenizing: 8709it [00:11, 736.43it/s]Tokenizing: 8783it [00:11, 732.22it/s]Tokenizing: 8857it [00:11, 728.76it/s]Tokenizing: 8930it [00:11, 725.55it/s]Tokenizing: 9003it [00:12, 706.14it/s]Tokenizing: 9075it [00:12, 708.05it/s]Tokenizing: 9147it [00:12, 710.12it/s]Tokenizing: 9220it [00:12, 714.26it/s]Tokenizing: 9293it [00:12, 716.69it/s]Tokenizing: 9366it [00:12, 718.80it/s]Tokenizing: 9439it [00:12, 718.50it/s]Tokenizing: 9511it [00:12, 710.85it/s]Tokenizing: 9583it [00:12, 712.65it/s]Tokenizing: 9655it [00:12, 702.47it/s]Tokenizing: 9726it [00:13, 701.58it/s]Tokenizing: 9800it [00:13, 712.48it/s]Tokenizing: 9872it [00:13, 711.20it/s]Tokenizing: 9944it [00:13, 708.43it/s]Tokenizing: 10015it [00:13, 708.18it/s]Tokenizing: 10086it [00:13, 708.43it/s]Tokenizing: 10159it [00:13, 712.34it/s]Tokenizing: 10231it [00:13, 708.84it/s]Tokenizing: 10303it [00:13, 712.04it/s]Tokenizing: 10320it [00:13, 743.44it/s]
+INFO:root:***** Running training *****
+INFO:root:  Num examples = 10320
+INFO:root:  Num Epochs = 3
+INFO:root:  Train batch size = 1
+INFO:root:  Test batch size = 1
+INFO:root:  Gradient Clipping = 1
+INFO:root:  Total optimization steps = 30960
+  0%|          | 0/10320 [00:00<?, ?it/s]  0%|          | 0/10320 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/ray/ContinualLearning/LL_train.py", line 322, in <module>
+    outputs = model(input_ids=input_ids, labels=labels)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/peft/peft_model.py", line 1644, in forward
+    return self.base_model(
+           ^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/peft/tuners/tuners_utils.py", line 197, in forward
+    return self.model.forward(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py", line 1229, in forward
+    loss = loss_fct(shift_logits, shift_labels)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/modules/loss.py", line 1188, in forward
+    return F.cross_entropy(input, target, weight=self.weight,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ray/.conda/envs/toxicity_rag/lib/python3.12/site-packages/torch/nn/functional.py", line 3104, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index, label_smoothing)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1002.00 MiB. GPU 0 has a total capacity of 23.68 GiB of which 735.38 MiB is free. Process 1369433 has 15.33 GiB memory in use. Including non-PyTorch memory, this process has 7.59 GiB memory in use. Of the allocated memory 7.23 GiB is allocated by PyTorch, and 61.46 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
