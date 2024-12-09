@@ -18,10 +18,14 @@ jailbreak28k_prompts = jailbreak28k.filter(lambda x: x['transfer_from_llm'] == T
 beavertail = load_dataset('PKU-Alignment/BeaverTails')
 beavertail_unsafe = beavertail['330k_train'].filter(lambda x: x['is_safe'] == False)
 
+# Limit beavertail_unsafe to 20,000 rows
+limited_beavertail_unsafe = beavertail_unsafe.select(range(20000))  # Use the first 20,000 rows
+
 # Load Alpaca prompts (assumed to be safe)
 with open('./alpaca_small.json') as f:
     alpaca = json.load(f)
     alpaca_prompts = [d['instruction'] for d in alpaca]
+
 
 # Prepare data for DataFrame
 data = []
@@ -30,7 +34,7 @@ data = []
 data.extend([{'prompt': row['jailbreak_query'], 'label': 'unsafe'} for row in jailbreak28k_prompts['JailBreakV_28K']])
 
 # Add BeaverTails prompts (unsafe)
-data.extend([{'prompt': row['prompt'], 'label': 'unsafe'} for row in beavertail_unsafe])
+data.extend([{'prompt': row['prompt'], 'label': 'unsafe'} for row in limited_beavertail_unsafe])
 
 # Add Alpaca prompts (safe)
 data.extend([{'prompt': prompt, 'label': 'safe'} for prompt in alpaca_prompts])
@@ -43,7 +47,7 @@ print(df.head())  # Preview the DataFrame
 print(f"Total rows: {len(df)}")
 
 # Save the DataFrame to a CSV file (optional)
-df.to_csv('./prompts_with_labels.csv', index=False)
+df.to_csv('./prompts_with_labels.csv', index=False, encoding='utf-8')
 
 
 # Set random seed for reproducibility
@@ -66,4 +70,4 @@ for i, chunk in enumerate(chunks):
     print("=" * 50)
 
     # Save each chunk 
-    chunk.to_csv(f'./split_data/prompts_chunk_{i+1}.csv', index=False)
+    chunk.to_csv(f'./split_data/prompts_chunk_{i+1}.csv', index=False, encoding='utf-8')

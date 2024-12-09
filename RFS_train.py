@@ -122,10 +122,9 @@ def tokenize_with_template(user_inputs, agent_labels):
         # Format the chat into a single string (without tokenizing yet)
         input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt", max_length=args.max_train_input_length
                                                   , padding="max_length", truncation=True).squeeze(0)
-
-        # Tokenize the label separately ("unsafe" or "safe")
-        label_input = tokenizer(agent_label, padding="max_length", truncation=True, return_tensors="pt", max_length=1)["input_ids"].squeeze(0)
         
+        # Tokenize the label separately ("unsafe" or "safe")
+        label_input = tokenizer(agent_label, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze(0)
         # Prepare the labels tensor with -100 (ignore index for loss calculation)
         labels = torch.full_like(input_ids, -100)
         
@@ -164,11 +163,15 @@ def tokenize_with_template_test(user_inputs, agent_labels):
         },
         ]
         # Format the chat into a single string (without tokenizing yet)
-        input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt").squeeze(0)
+        # input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt").squeeze(0)
+        input_ids = tokenizer.apply_chat_template(
+            chat,
+            return_tensors="pt",
+            max_length=args.max_train_input_length,
+            truncation=True,  # Remove `padding` to avoid adding extra tokens
+        ).squeeze(0)
 
-        input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt", max_length=args.max_train_input_length
-                                                  , padding="max_length", truncation=True).squeeze(0)
-
+        
         # Tokenize the label separately ("unsafe" or "safe")
         label_input = tokenizer(agent_label, padding="max_length", truncation=True, return_tensors="pt", max_length=1)["input_ids"].squeeze(0)
         
@@ -192,25 +195,8 @@ def tokenize_with_template_test(user_inputs, agent_labels):
     }
     return encodings
 
-# Load data
-# all_file_paths = [
-#                     f"./{args.data_dir}/AIM_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/base64_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/caesar_cipher_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/CC_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/combination_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/DAN_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/deepInception_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/dual_use_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/self_cipher_data_{args.training_proportion}_percent/",
-#                     f"./{args.data_dir}/zulu_data_{args.training_proportion}_percent/",
-#                   ] 
 if args.do_train:
-    # train_df = load_and_concatenate_csv(all_file_paths, subset="train")
-    # train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
-    # train_texts = train_df["transformed_prompt"].tolist()
-    # # all outputs are labeled as 'unsafe'
-    # train_labels = ["unsafe"] * len(train_texts)
+
 
     # List to store data from multiple chunks
     train_dfs = []
@@ -224,7 +210,7 @@ if args.do_train:
 
     # Concatenate all the chunks into a single DataFrame
     train_df = pd.concat(train_dfs, ignore_index=True)
-    
+    print(len(train_df))
     # Shuffle the combined DataFrame
     train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
     
@@ -233,10 +219,6 @@ if args.do_train:
     train_labels = train_df["label"].tolist()
 
 if args.do_test:
-    # test_df = load_and_concatenate_csv(all_file_paths, subset="test")    
-    # test_texts = test_df["transformed_prompt"].tolist()
-    # # all outputs are labeled as 'unsafe'
-    # test_labels = ["unsafe"] * len(test_texts)
 
     chunk_path = f"./{args.data_dir}/prompts_chunk_{args.chunks}.csv"
     test_df = pd.read_csv(chunk_path)
@@ -366,6 +348,7 @@ if args.do_test:
                                     use_cache=False)
     
     model = model.merge_and_unload()
+    
     # Merge LoRA weights into the base model
     model.eval()
     
@@ -377,7 +360,6 @@ if args.do_test:
         test_bar = tqdm(test_dataloader, total=len(test_dataloader))
         for batch in test_bar:
             input_ids = batch["input_ids"].to(device) # use one GPU for testing (cuda:0)
-
             # Generate outputs using the model
             try:
                 generated_outputs = model.generate(input_ids=input_ids, max_new_tokens=args.max_new_tokens, pad_token_id=0)
@@ -385,15 +367,17 @@ if args.do_test:
                 # invalid input
                 predictions.append(-1)
                 continue
-            prompt_len = input_ids.shape[-1]
+            
             # Decode and print each generated output
             for input_id, generated_output in zip(input_ids, generated_outputs):
-                # Decode the input for reference
+                prompt_len = input_ids.shape[-1]
+                generated_output_len = generated_output.shape[-1]
+                # Decode the input and output
                 input_text = tokenizer.decode(input_id, skip_special_tokens=True)
-                print(input_text)
-                # Decode the generated output
                 output_text = tokenizer.decode(generated_output[prompt_len:], skip_special_tokens=True)
-                print(output_text)
+                print('Decoded input text:', input_text)
+                print('Decoded output text:', output_text)
+
                 count += 1
                 if "unsafe" in output_text:
                     correct_count += 1

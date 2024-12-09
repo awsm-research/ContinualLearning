@@ -20,13 +20,13 @@
   "rank_pattern": {},
   "revision": null,
   "target_modules": [
-    "k_proj",
-    "q_proj",
+    "wte",
     "v_proj",
     "fc_in",
-    "wte",
-    "out_proj",
-    "fc_out"
+    "k_proj",
+    "q_proj",
+    "fc_out",
+    "out_proj"
   ],
   "task_type": "CAUSAL_LM",
   "use_dora": false,
