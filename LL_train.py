@@ -404,5 +404,5 @@ if args.do_test:
     
     logger.info(f"***** Writing Testing Results to {args.saved_model_name + '/' + args.test_result_file} *****")
     test_df["predictions"] = predictions
-    test_df.to_csv(args.saved_model_name + '/' + args.test_result_file)
+    test_df.to_csv(args.saved_model_name + '/' + args.test_result_file + '.csv')
     logger.info("done.")
