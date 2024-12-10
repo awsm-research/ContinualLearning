@@ -29,13 +29,15 @@ parser.add_argument("--do_train", action='store_true', default=False,
                     help="Whether to train the model.")
 parser.add_argument("--do_test", action='store_true', default=False,
                     help="Whether to run inference.")
-parser.add_argument("--do_ablation", action='store_true', default=False,
-                    help="Whether to do ablation study on the amount of training data.")
+# parser.add_argument("--do_ablation", action='store_true', default=False,
+#                     help="Whether to do ablation study on the amount of training data.")
 # parser.add_argument("--training_proportion", default=None, type=int,
 #                     help="")
 
 parser.add_argument("--model_name_or_path", default="meta-llama/Llama-Guard-3-1B", type=str,
                     help="The model checkpoint for weights initialization.")
+parser.add_argument("--prev_model_name", default=None, type=str,
+                    help="Name for the previous model in LL.")
 parser.add_argument("--saved_model_name", default=None, type=str,
                     help="Name for the best saved model.")
 parser.add_argument("--test_result_file", default=None, type=str,
@@ -87,6 +89,21 @@ class TextDataset(torch.utils.data.Dataset):
         item = {key: val[idx].clone().detach() for key, val in self.encodings.items()}
         return item
 
+def load_and_concatenate_csv(file_paths, subset):
+    # Load each CSV into a list of DataFrames
+    dfs = [pd.read_csv(file+f"{subset}.csv") for file in file_paths]
+    # Concatenate all DataFrames into one
+    combined_df = pd.concat(dfs, ignore_index=True)
+    return combined_df
+
+def transform_dataset_prompt(dataset):
+    transformed_data=[]
+    for x in dataset:
+        chat = [
+            {"role": "user", "content": x},
+        ]
+        transformed_data.append(chat)
+    return transformed_data
 
 def tokenize_with_template(user_inputs, agent_labels):
     input_ids_list = []
@@ -159,7 +176,7 @@ def tokenize_with_template_test(user_inputs, agent_labels):
         
         # Tokenize the label separately ("unsafe" or "safe")
         label_input = tokenizer(agent_label, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze(0)
-        
+
         # Prepare the labels tensor with -100 (ignore index for loss calculation)
         labels = torch.full_like(input_ids, -100)
         
@@ -169,7 +186,7 @@ def tokenize_with_template_test(user_inputs, agent_labels):
         
         # Insert the "unsafe"/"safe" label at the first pad position (or the end of the prompt)
         labels[first_pad_index] = label_input  # Place the label token
-        
+
         # Append the input_ids and labels to their respective lists
         input_ids_list.append(input_ids)
         labels_list.append(labels)
@@ -182,20 +199,9 @@ def tokenize_with_template_test(user_inputs, agent_labels):
 
 if args.do_train:
 
-
-    # List to store data from multiple chunks
-    train_dfs = []
-
-    # Iterate through the specified number of chunks
-    for i in range(1, args.chunks + 1):  # From 1 to args.chunk (inclusive)
-        print(f'Loading chunk {i}')
-        chunk_path = f"./{args.data_dir}/prompts_chunk_{i}.csv"
-        chunk_df = pd.read_csv(chunk_path)  # Load each chunk
-        train_dfs.append(chunk_df)  # Add the DataFrame to the list
-
+    chunk_path = f"./{args.data_dir}/prompts_chunk_{args.chunks}.csv"
     # Concatenate all the chunks into a single DataFrame
-    train_df = pd.concat(train_dfs, ignore_index=True)
-    print(len(train_df))
+    train_df = pd.read_csv(chunk_path)
     # Shuffle the combined DataFrame
     train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
     
@@ -213,17 +219,29 @@ if args.do_test:
 
 # load tokenizer and model
 if args.do_train:
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path) # meta-llama/Llama-Guard-3-8B
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+ # meta-llama/Llama-Guard-3-1B
 elif args.do_test:
     tokenizer = AutoTokenizer.from_pretrained(args.saved_model_name)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
 if args.do_train:
-    model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path,
-                                                device_map="auto",
-                                                torch_dtype=torch.bfloat16,
-                                                use_cache=False)
+    if args.prev_model_name and args.chunks > 1:
+        logger.info(f"Loading model from saved model: {args.prev_model_name}")
+        model = AutoModelForCausalLM.from_pretrained(
+            args.prev_model_name,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            use_cache=False,
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_name_or_path,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            use_cache=False,
+        )
     # Apply LoRA configuration
     target_modules = ["q_proj", "k_proj", "v_proj", "out_proj", "fc_in", "fc_out", "wte"] 
     ### Default: trainable params: 4,718,592 || all params: 8,034,979,840 || trainable%: 0.0587 ###
