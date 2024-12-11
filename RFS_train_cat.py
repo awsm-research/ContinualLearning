@@ -12,6 +12,8 @@ import argparse
 import logging
 import numpy as np
 import random
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -59,7 +61,7 @@ parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for train/val/test")
 parser.add_argument("--max_train_input_length", default=2048, type=int,
                     help="Maximum number of subword tokens per input.")
-parser.add_argument("--max_new_tokens", default=100, type=int,
+parser.add_argument("--max_new_tokens", default=5, type=int,
                     help="Generation parameters")
 
 parser.add_argument("--chunks", default=1, type=int,
@@ -109,10 +111,11 @@ def tokenize_with_template(user_inputs, agent_labels,categories):
                                                   , padding="max_length", truncation=True).squeeze(0)
         
         # Combine label and category with newline
-        if category == 'safe':
-            target_text = f"{agent_label}"
+        if agent_label == 'safe':
+            target_text = agent_label
         else:
-            target_text = f"{agent_label}\n{category}"
+            target_text = f"{agent_label}\n\n{category}"
+            
 
         # Tokenize the combined label and category
         label_input = tokenizer(target_text, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze(0)
@@ -124,10 +127,10 @@ def tokenize_with_template(user_inputs, agent_labels,categories):
         first_pad_index = (input_ids == tokenizer.pad_token_id).nonzero(as_tuple=True)[0][0]  # First pad index
         labels[first_pad_index:first_pad_index + label_input.size(0)] = label_input  # Place the label sequence
 
+        
         # Append the input_ids and labels to their respective lists
         input_ids_list.append(input_ids)
         labels_list.append(labels)
-
 
     # Stack all tokenized inputs and labels into single tensors
     encodings = {
@@ -164,7 +167,11 @@ def tokenize_with_template_test(user_inputs, agent_labels, categories):
         
        # Combine label and category with newline
         
-        target_text = f"{agent_label}\n{category}"
+        if category == 'safe':
+            target_text = agent_label
+        else:
+            target_text = f"{agent_label}\n\n{category}"
+            
 
         # Tokenize the combined label and category
         label_input = tokenizer(target_text, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze(0)
@@ -175,6 +182,7 @@ def tokenize_with_template_test(user_inputs, agent_labels, categories):
         # Insert the label sequence at the appropriate position
         first_pad_index = (input_ids == tokenizer.pad_token_id).nonzero(as_tuple=True)[0][0]  # First pad index
         labels[first_pad_index:first_pad_index + label_input.size(0)] = label_input  # Place the label sequence
+        
 
         # Append the input_ids and labels to their respective lists
         input_ids_list.append(input_ids)
@@ -202,7 +210,6 @@ if args.do_train:
 
     # Concatenate all the chunks into a single DataFrame
     train_df = pd.concat(train_dfs, ignore_index=True)
-    print(len(train_df))
     # Shuffle the combined DataFrame
     train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
     
@@ -210,6 +217,7 @@ if args.do_train:
     train_texts = train_df["prompt"].tolist()
     train_labels = train_df["label"].tolist()
     train_categories = train_df["category"].tolist()
+
 
 # # Tokenize with label and category
 # train_encodings = tokenize_with_template(train_texts, train_labels, train_categories)
@@ -225,7 +233,7 @@ if args.do_test:
 
 # load tokenizer and model
 if args.do_train:
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path) # meta-llama/Llama-Guard-3-8B
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path) # meta-llama/Llama-Guard-3-1B
 elif args.do_test:
     tokenizer = AutoTokenizer.from_pretrained(args.saved_model_name)
 if tokenizer.pad_token is None:
@@ -349,6 +357,12 @@ if args.do_test:
     # Merge LoRA weights into the base model
     model.eval()
     
+
+    label_predictions = []
+    label_targets = []
+    type_predictions = []
+    type_targets = []
+
     # Loop through the test dataloader
     count = 0
     correct_count = 0
@@ -362,7 +376,14 @@ if args.do_test:
             # Generate outputs using the model
             
             try:
-                generated_outputs = model.generate(input_ids=input_ids, max_new_tokens=args.max_new_tokens, pad_token_id=0)
+                generated_outputs = model.generate(
+                    input_ids=input_ids,
+                    max_new_tokens=args.max_new_tokens,
+                    pad_token_id=tokenizer.pad_token_id,
+                    do_sample=False,  # Disable sampling for more deterministic outputs
+                    num_beams=5,  # Use beam search for more focused results
+                    eos_token_id=tokenizer.eos_token_id,  # Enforce stopping at end-of-sequence
+                )
             except:
                 # invalid input
                 predictions.append(-1)
@@ -376,28 +397,83 @@ if args.do_test:
                 input_text = tokenizer.decode(input_id, skip_special_tokens=True)
                 output_text = tokenizer.decode(generated_output[prompt_len:], skip_special_tokens=True)
                 first_pad_index = (input_id == tokenizer.pad_token_id).nonzero(as_tuple=True)[0][0] 
+                encoded_label = test_label[first_pad_index:]
+                decoded_label = tokenizer.decode(encoded_label[encoded_label != -100], skip_special_tokens=True)
+                # print(input_id)
+                # print(generated_output)
+                logits = generated_output.logits
+                predicted_ids = torch.argmax(logits, dim=-1)
+                predicted_tokens = tokenizer.decode(predicted_ids[0], skip_special_tokens=True)
+                # print(f"Predicted Tokens: {predicted_tokens}")
+                # exit()
+                # Extract unsafe/safe label and type from the output
+                if len(decoded_label) >= 1:
+                    if 'unsafe' in decoded_label:
 
+                        true_label = 'unsafe'
+                        true_type = decoded_label[8:] 
+                    else:
+                        true_label = 'safe'
+                        true_type = None
+                          # Second token: unsafe type
+                else:
+                    continue
+                # print('this is decoded label: ' + decoded_label)
+                # print('this is output text: ' + output_text)
                 
-                decoded_label = tokenizer.decode(test_label[first_pad_index:first_pad_index+2], skip_special_tokens=True)
+                if "\n" in output_text:
+                    pred_label, pred_type = output_text.split("\n", 1)
+                else:
+                    pred_label, pred_type = output_text, None
 
                 count += 1
-                if 'unsafe' in output_text:
-                    if decoded_label == 'unsafe':
+
+                # Record binary metrics for unsafe/safe label
+                label_predictions.append(pred_label.strip())
+                label_targets.append(true_label.strip())
+
+                if 'unsafe' in pred_label:
+                    if true_label == 'unsafe':
                         correct_count += 1
                 else:
-                    if decoded_label == 'safe':
+                    if true_label == 'safe':
                         correct_count += 1
-                    
-                predictions.append(output_text[0])
                 
-                dsr = round(correct_count/count, 2)
-                test_bar.set_description(f"Test Acc: {dsr} | {correct_count}/{count}")
+                # Record multi-class metrics for unsafe types
+                if true_label == "unsafe" and 'unsafe' in pred_label and true_type and pred_type:
+                    type_predictions.append(pred_type.strip())
+                    type_targets.append(true_type.strip())
+                predictions.append(output_text)
+                
+                acc = round(correct_count/count, 2)
+
+                test_bar.set_description(f"Binary Acc: {acc} | {correct_count}/{count}")
     
-    logger.info(f"***** Test Results *****")
-    logger.info(f"Accuracy: {round(correct_count/count, 2)}")
-    logger.info(f"{correct_count}/{count}")
+    # Calculate binary metrics for unsafe/safe detection
+    binary_accuracy = accuracy_score(label_targets, label_predictions)
+    binary_precision = precision_score(label_targets, label_predictions, pos_label="unsafe")
+    binary_recall = recall_score(label_targets, label_predictions, pos_label="unsafe")
+    binary_f1 = f1_score(label_targets, label_predictions, pos_label="unsafe")
+    
+    logger.info("***** Binary Metrics for Unsafe/Safe Detection *****")
+    logger.info(f"Accuracy: {binary_accuracy:.4f}")
+    logger.info(f"Precision: {binary_precision:.4f}")
+    logger.info(f"Recall: {binary_recall:.4f}")
+    logger.info(f"F1 Score: {binary_f1:.4f}")
+    exit()
+    # Calculate multi-class accuracy for unsafe types
+    if type_targets and type_predictions:
+        multi_class_accuracy = accuracy_score(type_targets, type_predictions)
+        logger.info("***** Multi-Class Accuracy for Unsafe Types *****")
+        logger.info(f"Accuracy: {multi_class_accuracy:.4f}")
+    else:
+        logger.info("No unsafe type predictions available for multi-class accuracy.")
+    
     
     logger.info(f"***** Writing Testing Results to {args.saved_model_name + '/' + args.test_result_file} *****")
-    test_df["predictions"] = predictions
+    test_df["label_predictions"] = label_predictions
+    test_df["label_targets"] = label_targets
+    test_df["type_predictions"] = type_predictions if type_predictions else []
+    test_df["type_targets"] = type_targets if type_targets else []
     test_df.to_csv(args.saved_model_name + '/' + args.test_result_file + '.csv')
-    logger.info("done.")
+    logger.info("Done.")
