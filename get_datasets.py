@@ -39,7 +39,7 @@ mapping_beavertail = {
 }
 def map_beavertail(category):
     for key,value in category.items():
-        if value == 'true':
+        if value == True:
             return mapping_beavertail[key]
 
 mapping_jailbreak28k = {
