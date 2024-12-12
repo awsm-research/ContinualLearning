@@ -114,7 +114,7 @@ def tokenize_with_template(user_inputs, agent_labels,categories):
         if agent_label == 'safe':
             target_text = agent_label
         else:
-            target_text = f"{agent_label}\n\n{category}"
+            target_text = f"\n\n{agent_label}\n{category}"
             
 
         # Tokenize the combined label and category
@@ -156,21 +156,20 @@ def tokenize_with_template_test(user_inputs, agent_labels, categories):
         },
         ]
         # Format the chat into a single string (without tokenizing yet)
-        # input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt").squeeze(0)
         input_ids = tokenizer.apply_chat_template(
             chat,
             return_tensors="pt",
             max_length=args.max_train_input_length,
-            truncation=True,  # Remove `padding` to avoid adding extra tokens
+            truncation=True, 
+            padding="max_length" # Remove `padding` to avoid adding extra tokens
         ).squeeze(0)
 
-        
-       # Combine label and category with newline
+        # Combine label and category with newline
         
         if category == 'safe':
             target_text = agent_label
         else:
-            target_text = f"{agent_label}\n\n{category}"
+            target_text = f"\n\n{agent_label}\n{category}"
             
 
         # Tokenize the combined label and category
@@ -181,8 +180,12 @@ def tokenize_with_template_test(user_inputs, agent_labels, categories):
 
         # Insert the label sequence at the appropriate position
         first_pad_index = (input_ids == tokenizer.pad_token_id).nonzero(as_tuple=True)[0][0]  # First pad index
+
         labels[first_pad_index:first_pad_index + label_input.size(0)] = label_input  # Place the label sequence
-        
+        positions = (input_ids == 128009).nonzero(as_tuple=True)[0].tolist()
+        # print(first_pad_index)
+        # print(positions)
+        # exit()
 
         # Append the input_ids and labels to their respective lists
         input_ids_list.append(input_ids)
@@ -235,15 +238,19 @@ if args.do_test:
 if args.do_train:
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path) # meta-llama/Llama-Guard-3-1B
 elif args.do_test:
-    tokenizer = AutoTokenizer.from_pretrained(args.saved_model_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = tokenizer.pad_token = "<pad>"
+    tokenizer.add_special_tokens({'pad_token': "<pad>"})
+
+
 
 if args.do_train:
     model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path,
                                                 device_map="auto",
                                                 torch_dtype=torch.bfloat16,
                                                 use_cache=False)
+    model.resize_token_embeddings(len(tokenizer))
     # Apply LoRA configuration
     target_modules = ["q_proj", "k_proj", "v_proj", "out_proj", "fc_in", "fc_out", "wte"] 
     ### Default: trainable params: 4,718,592 || all params: 8,034,979,840 || trainable%: 0.0587 ###
@@ -346,6 +353,7 @@ if args.do_test:
                                                 device_map=device,
                                                 torch_dtype=torch.bfloat16,
                                                 use_cache=False)
+    model.resize_token_embeddings(len(tokenizer))
     model = PeftModel.from_pretrained(model,
                                     args.saved_model_name,
                                     device_map=device,
@@ -374,14 +382,13 @@ if args.do_test:
             labels = batch["labels"].to(device)
             
             # Generate outputs using the model
-            
+
             try:
                 generated_outputs = model.generate(
                     input_ids=input_ids,
                     max_new_tokens=args.max_new_tokens,
                     pad_token_id=tokenizer.pad_token_id,
-                    do_sample=False,  # Disable sampling for more deterministic outputs
-                    num_beams=5,  # Use beam search for more focused results
+                    # temperature=1.2, top_p=0.9,
                     eos_token_id=tokenizer.eos_token_id,  # Enforce stopping at end-of-sequence
                 )
             except:
@@ -399,13 +406,7 @@ if args.do_test:
                 first_pad_index = (input_id == tokenizer.pad_token_id).nonzero(as_tuple=True)[0][0] 
                 encoded_label = test_label[first_pad_index:]
                 decoded_label = tokenizer.decode(encoded_label[encoded_label != -100], skip_special_tokens=True)
-                # print(input_id)
-                # print(generated_output)
-                logits = generated_output.logits
-                predicted_ids = torch.argmax(logits, dim=-1)
-                predicted_tokens = tokenizer.decode(predicted_ids[0], skip_special_tokens=True)
-                # print(f"Predicted Tokens: {predicted_tokens}")
-                # exit()
+
                 # Extract unsafe/safe label and type from the output
                 if len(decoded_label) >= 1:
                     if 'unsafe' in decoded_label:
@@ -418,25 +419,32 @@ if args.do_test:
                           # Second token: unsafe type
                 else:
                     continue
-                # print('this is decoded label: ' + decoded_label)
-                # print('this is output text: ' + output_text)
+                print('this is decoded label: ' + decoded_label)
+                print('this is output text: ' + output_text)
                 
-                if "\n" in output_text:
-                    pred_label, pred_type = output_text.split("\n", 1)
+                output_text = output_text.strip()
+
+                # Split by newlines
+                parts = output_text.split("\n")
+
+                if len(parts) >= 2:
+                    pred_label = parts[0]
+                    pred_type = parts[1]
                 else:
-                    pred_label, pred_type = output_text, None
+                    pred_label = parts[0]
+                    pred_type = None
 
                 count += 1
-
+                
                 # Record binary metrics for unsafe/safe label
                 label_predictions.append(pred_label.strip())
                 label_targets.append(true_label.strip())
 
                 if 'unsafe' in pred_label:
-                    if true_label == 'unsafe':
+                    if 'unsafe' in true_label :
                         correct_count += 1
                 else:
-                    if true_label == 'safe':
+                    if true_label == 'safe' and pred_label == 'safe':
                         correct_count += 1
                 
                 # Record multi-class metrics for unsafe types
@@ -448,6 +456,8 @@ if args.do_test:
                 acc = round(correct_count/count, 2)
 
                 test_bar.set_description(f"Binary Acc: {acc} | {correct_count}/{count}")
+                # if count == 10:
+                #     exit()
     
     # Calculate binary metrics for unsafe/safe detection
     binary_accuracy = accuracy_score(label_targets, label_predictions)
@@ -460,7 +470,7 @@ if args.do_test:
     logger.info(f"Precision: {binary_precision:.4f}")
     logger.info(f"Recall: {binary_recall:.4f}")
     logger.info(f"F1 Score: {binary_f1:.4f}")
-    exit()
+
     # Calculate multi-class accuracy for unsafe types
     if type_targets and type_predictions:
         multi_class_accuracy = accuracy_score(type_targets, type_predictions)
