@@ -1,0 +1,16 @@
+python michael_RFS_train_cat.py \
+    --do_train \
+    --batch_size=1 \
+    --data_dir=split_data_with_cat \
+    --model_name_or_path=meta-llama/Llama-Guard-3-8B \
+    --saved_model_name=RFS_chunk1 \
+    --learning_rate=1e-4 \
+    --epochs=1 \
+    --chunks=1 \
+    --max_grad_norm=1.0 \
+    --lora_r=8 \
+    --lora_alpha=32 \
+    --lora_dropout=0.1 \
+    --max_train_input_length=2048 \
+    --max_new_tokens=100 \
+    --seed 123456  2>&1 | tee RFS_chunk1.log
